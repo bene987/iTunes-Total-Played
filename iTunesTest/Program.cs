@@ -23,6 +23,7 @@ namespace iTunesTest
                 sw.Restart();
                 DoStuff(collectGarbage: true, release: true);
                 runs.Add(("collectGarbage: true, release: true", sw.Elapsed));
+                GC.Collect();
             }
 
             for (int i = 0; i < 1; i++)
@@ -30,6 +31,7 @@ namespace iTunesTest
                 sw.Restart();
                 DoStuff(collectGarbage: true, release: false);
                 runs.Add(("collectGarbage: true, release: false", sw.Elapsed));
+                GC.Collect();
             }
 
             for (int i = 0; i < 1; i++)
@@ -37,6 +39,7 @@ namespace iTunesTest
                 sw.Restart();
                 DoStuff(collectGarbage: false, release: true);
                 runs.Add(("collectGarbage: false, release: true", sw.Elapsed));
+                GC.Collect();
             }
 
             for (int i = 0; i < 1; i++)
@@ -44,6 +47,7 @@ namespace iTunesTest
                 sw.Restart();
                 DoStuff(collectGarbage: false, release: false);
                 runs.Add(("collectGarbage: false, release: false", sw.Elapsed));
+                GC.Collect();
             }
 
             foreach (var item in runs.GroupBy(x => x.Item1))
@@ -57,10 +61,9 @@ namespace iTunesTest
         {
             foreach (var o in comObjects)
             {
-                var oT = o as T;
-                if (oT != null)
+                if (o is T oT)
                 {
-                    yield return (T)o;
+                    yield return oT;
                     continue;
                 }
                 if (release)
@@ -114,7 +117,7 @@ namespace iTunesTest
                 }
 
                 Console.SetCursorPosition(0, Console.CursorTop);
-                Console.Write($"Track {i + 1}/{tracks.Count}".PadLeft(Console.WindowWidth));
+                Console.Write($"Track {i + 1}/{tracks.Count} --- {Process.GetCurrentProcess().PrivateMemorySize64/(1024*1024)} MiB".PadLeft(Console.WindowWidth));
                 if (collectGarbage)
                 {
                     GC.Collect();
@@ -122,7 +125,7 @@ namespace iTunesTest
             }
 
             Console.SetCursorPosition(0, Console.CursorTop);
-            Console.Write($"Track {tracks.Count}/{tracks.Count}".PadLeft(Console.WindowWidth));
+            Console.Write($"Track {tracks.Count}/{tracks.Count} --- {Process.GetCurrentProcess().PrivateMemorySize64 / (1024 * 1024)} MiB".PadLeft(Console.WindowWidth));
             Console.WriteLine();
 
             Console.WriteLine("Calculating....");
