@@ -156,20 +156,19 @@ namespace iTunesTest
             swCalc.Stop();
             ticksVector3 = swCalc.ElapsedTicks;
 
-
             var time = TimeSpan.FromSeconds(secVector);
 
             Console.WriteLine();
             Console.WriteLine($"total time: {time.TotalHours}h");
             Console.WriteLine($"\t {time.TotalDays}d");
-            Console.WriteLine($"normal calc ticks: {ticksCalc}");
-            Console.WriteLine($"vector calc ticks: {ticksVector}");
-            Console.WriteLine($"vector2 calc ticks: {ticksVector2}");
-            Console.WriteLine($"vector3 calc ticks: {ticksVector3}");
+            Console.WriteLine($"normal calc ticks: {ticksCalc} ({TimeSpan.FromTicks(ticksCalc).TotalMilliseconds} ms)");
+            Console.WriteLine($"vector calc ticks: {ticksVector} ({TimeSpan.FromTicks(ticksVector).TotalMilliseconds} ms)");
+            Console.WriteLine($"vector2 calc ticks: {ticksVector2} ({TimeSpan.FromTicks(ticksVector2).TotalMilliseconds} ms)");
+            Console.WriteLine($"vector3 calc ticks: {ticksVector3} ({TimeSpan.FromTicks(ticksVector3).TotalMilliseconds} ms)");
 
-            Debug.Assert(secCalc == secVector, "vector calc wrong");
-            Debug.Assert(secCalc == secVector2, "vector2 calc wrong");
-            Debug.Assert(secCalc == secVector3, "vector3 calc wrong");
+            Assert(secCalc == secVector, "vector calc wrong");
+            Assert(secCalc == secVector2, "vector2 calc wrong");
+            Assert(secCalc == secVector3, "vector3 calc wrong");
 
             Marshal.ReleaseComObject(app);
         }
@@ -240,6 +239,14 @@ namespace iTunesTest
                 result += count * duration;
             }
             return result;
+        }
+
+        static void Assert(bool condition, string message)
+        {
+            if(condition != true)
+            {
+                Console.WriteLine(message);
+            }
         }
     }
 }
