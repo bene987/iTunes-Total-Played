@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "WT Powershell": {
+      "commandName": "Executable",
+      "executablePath": "wt.exe",
+      "commandLineArgs": "Powershell $(ProjectDir)$(OutputPath)iTunesTest.exe"
+    },
+    "Debugger": {
+      "commandName": "Project"
+    }
+  }
+}
