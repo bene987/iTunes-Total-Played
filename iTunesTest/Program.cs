@@ -91,7 +91,7 @@ namespace iTunesTest
             //    @"%m\:%s"
             //};
 
-            // vector<int> alingment
+            // vector<int> alignment
             int arraySize = (int)Math.Ceiling((double)tracks.Count / Vector<int>.Count) * Vector<int>.Count;
 
             var durationArray = new int[arraySize];
