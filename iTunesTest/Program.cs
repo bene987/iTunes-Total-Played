@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Cudafy;
+using Cudafy.Host;
+using Cudafy.Translator;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -99,7 +102,9 @@ namespace iTunesTest
 
             foreach (var (track, i) in tracks
                 .OfTypeComRelease<iTunesLib.IITTrack>(release)
-                .Select((x, i) => (x, i)))
+                .Select((x, i) => (x, i))
+                .Take(1000)
+                )
             {
                 countArray[i] = track.PlayedCount;
                 durationArray[i] = track.Duration;
@@ -156,6 +161,18 @@ namespace iTunesTest
             swCalc.Stop();
             ticksVector3 = swCalc.ElapsedTicks;
 
+            var gpu = CudafyInit();
+            int[] gpuCountArray = gpu.CopyToDevice(countArray);
+            int[] gpuDurationArray = gpu.CopyToDevice(durationArray);
+            int[] result = new int[1];
+            int[] gpuResult = gpu.Allocate<int>(result);
+
+
+            gpu.Launch(arraySize, 128, "CalcGPU", gpuCountArray, gpuDurationArray, gpuResult);
+            gpu.CopyFromDevice(gpuResult, result);
+            var gpuSum = result.Sum();
+            
+
             var time = TimeSpan.FromSeconds(secVector);
 
             Console.WriteLine();
@@ -170,7 +187,9 @@ namespace iTunesTest
             Assert(secCalc == secVector2, "vector2 calc wrong");
             Assert(secCalc == secVector3, "vector3 calc wrong");
 
+            Marshal.ReleaseComObject(tracks);
             Marshal.ReleaseComObject(app);
+            gpu.FreeAll();
         }
 
         static long VectorCalc(int[] countArray, int[] durationArray)
@@ -234,11 +253,42 @@ namespace iTunesTest
         static long Calc(int[] countArray, int[] durationArray)
         {
             long result = 0;
-            foreach (var (count, duration) in countArray.Zip(durationArray))
+            foreach ((int count, int duration) in countArray.Zip(durationArray, (x,y) => (x,y)))
             {
                 result += count * duration;
             }
             return result;
+        }
+
+        static GPGPU CudafyInit()
+        {
+            CudafyModes.Target = eGPUType.OpenCL; // To use OpenCL, change this enum
+            CudafyModes.DeviceId = 0;
+            CudafyTranslator.Language = CudafyModes.Target == eGPUType.OpenCL ? eLanguage.OpenCL : eLanguage.Cuda;
+
+            //Check for available devices
+            if (CudafyHost.GetDeviceCount(CudafyModes.Target) == 0)
+                throw new System.ArgumentException("No suitable devices found.", "original");
+
+            //Init device
+            GPGPU gpu = CudafyHost.GetDevice(CudafyModes.Target, CudafyModes.DeviceId);
+            Console.WriteLine("Running example using {0}", gpu.GetDeviceProperties(false).Name);
+
+            //Load module for GPU
+            CudafyModule km = CudafyTranslator.Cudafy();
+            gpu.LoadModule(km);
+
+            return gpu;
+        }
+
+        [Cudafy]
+        static void CalcGPU(GThread thread, int[] countArray, int[] durationArray, int[] result)
+        {
+            var idx = thread.blockIdx.x;
+            var shared = thread.AllocateShared<int>("shared", thread.gridDim.x / thread.blockDim.x);
+            shared[idx % thread.blockDim.x] += countArray[idx] * durationArray[idx];
+
+            thread.SyncThreadsCount(idx == thread.gridDim.x);
         }
 
         static void Assert(bool condition, string message)
