@@ -26,29 +26,29 @@ namespace iTunesTest
                 GC.Collect();
             }
 
-            for (int i = 0; i < 1; i++)
-            {
-                sw.Restart();
-                DoStuff(collectGarbage: true, release: false);
-                runs.Add(("collectGarbage: true, release: false", sw.Elapsed));
-                GC.Collect();
-            }
+            //for (int i = 0; i < 1; i++)
+            //{
+            //    sw.Restart();
+            //    DoStuff(collectGarbage: true, release: false);
+            //    runs.Add(("collectGarbage: true, release: false", sw.Elapsed));
+            //    GC.Collect();
+            //}
 
-            for (int i = 0; i < 1; i++)
-            {
-                sw.Restart();
-                DoStuff(collectGarbage: false, release: true);
-                runs.Add(("collectGarbage: false, release: true", sw.Elapsed));
-                GC.Collect();
-            }
+            //for (int i = 0; i < 1; i++)
+            //{
+            //    sw.Restart();
+            //    DoStuff(collectGarbage: false, release: true);
+            //    runs.Add(("collectGarbage: false, release: true", sw.Elapsed));
+            //    GC.Collect();
+            //}
 
-            for (int i = 0; i < 1; i++)
-            {
-                sw.Restart();
-                DoStuff(collectGarbage: false, release: false);
-                runs.Add(("collectGarbage: false, release: false", sw.Elapsed));
-                GC.Collect();
-            }
+            //for (int i = 0; i < 1; i++)
+            //{
+            //    sw.Restart();
+            //    DoStuff(collectGarbage: false, release: false);
+            //    runs.Add(("collectGarbage: false, release: false", sw.Elapsed));
+            //    GC.Collect();
+            //}
 
             foreach (var item in runs.GroupBy(x => x.Item1))
             {
@@ -128,6 +128,16 @@ namespace iTunesTest
             Console.Write($"Track {tracks.Count}/{tracks.Count} --- {Process.GetCurrentProcess().PrivateMemorySize64 / (1024 * 1024)} MiB".PadLeft(Console.WindowWidth));
             Console.WriteLine();
 
+            Console.WriteLine($"Vector.IsHardwareAccelerated: {Vector.IsHardwareAccelerated}");
+            Stopwatch sw = Stopwatch.StartNew();
+            // initialize calc function JIT
+            var dummy = new int[Vector<int>.Count];
+            Calc(dummy, dummy);
+            VectorCalc(dummy, dummy);
+            VectorCalc2(dummy, dummy);
+            VectorCalc3(dummy, dummy);
+            sw.Stop();
+            Console.WriteLine($"JIT calc functions dummy call took {sw.ElapsedMilliseconds:F0} ms / {sw.ElapsedTicks} ticks");
             Console.WriteLine("Calculating....");
 
             long secCalc = 0;
@@ -140,6 +150,39 @@ namespace iTunesTest
             long ticksVector3 = 0;
 
             var swCalc = Stopwatch.StartNew();
+
+
+            swCalc.Restart();
+            secVector = VectorCalc(countArray, durationArray);
+            swCalc.Stop();
+            ticksVector = swCalc.ElapsedTicks;
+            swCalc.Restart();
+
+            secVector2 = VectorCalc2(countArray, durationArray);
+            swCalc.Stop();
+            ticksVector2 = swCalc.ElapsedTicks;
+
+            swCalc.Restart();
+            secVector3 = VectorCalc3(countArray, durationArray);
+            swCalc.Stop();
+            ticksVector3 = swCalc.ElapsedTicks;
+
+            secCalc = Calc(countArray, durationArray);
+            swCalc.Stop();
+            ticksCalc = swCalc.ElapsedTicks;
+
+            var time = TimeSpan.FromSeconds(secVector);
+
+            Console.WriteLine();
+            Console.WriteLine($"total time: {time.TotalHours}h");
+            Console.WriteLine($"\t {time.TotalDays}d");
+            Console.WriteLine($"normal calc ticks: {ticksCalc} ({TimeSpan.FromTicks(ticksCalc).TotalMilliseconds} ms)");
+            Console.WriteLine($"vector calc ticks: {ticksVector} ({TimeSpan.FromTicks(ticksVector).TotalMilliseconds} ms)");
+            Console.WriteLine($"vector2 calc ticks: {ticksVector2} ({TimeSpan.FromTicks(ticksVector2).TotalMilliseconds} ms)");
+            Console.WriteLine($"vector3 calc ticks: {ticksVector3} ({TimeSpan.FromTicks(ticksVector3).TotalMilliseconds} ms)");
+
+
+            swCalc.Restart();
             secCalc = Calc(countArray, durationArray);
             swCalc.Stop();
             ticksCalc = swCalc.ElapsedTicks;
@@ -159,8 +202,6 @@ namespace iTunesTest
             swCalc.Stop();
             ticksVector3 = swCalc.ElapsedTicks;
 
-            var time = TimeSpan.FromSeconds(secVector);
-
             Console.WriteLine();
             Console.WriteLine($"total time: {time.TotalHours}h");
             Console.WriteLine($"\t {time.TotalDays}d");
@@ -173,7 +214,7 @@ namespace iTunesTest
             Assert(secCalc == secVector2, "vector2 calc wrong");
             Assert(secCalc == secVector3, "vector3 calc wrong");
 
-            Marshal.ReleaseComObject(app);
+            _ = Marshal.ReleaseComObject(app);
         }
 
         static long VectorCalc(int[] countArray, int[] durationArray)
